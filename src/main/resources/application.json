@@ -1,0 +1,24 @@
+{
+  "spark": {
+    "master": "local[*]",
+    "app_name_producer": "SPARK_STREAMING_TO_KAFKA",
+    "app_name_consumer": "SPARK_STREAMING_REGRESSION",
+    "batch_duration": 30
+  },
+  "kafka": {
+    "brokers": "localhost:9092",
+    "group_id": "spark_ml_testing",
+    "consumer_topic": "spark_ml_poc",
+    "producer_topic": "spark_ml_poc",
+    "auto_offset_reset": "earliest"    
+  },
+  "hdfs": {
+    "storage_location": "../data/sna"
+  },
+  "push" : {
+    "start_time": "2018-02-01 03:00:00",
+    "end_time": "2018-02-01 03:05:00",
+    "interval_ms": 1000,
+    "batch_duration_s": 1
+  }
+}
