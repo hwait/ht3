@@ -21,6 +21,5 @@
 - `SparkMLModelTraining.scala` - проверка работы модели на локальных данных (без стриминга)
 - `SparkMLRegressionFromKafka.scala` - Получает данные из Кафки, преобразует их с помщью пайплайна, считает линейную регрессию окнами с заданной длительностью. Выводит для каждого батча RMSE и R2 метрики.
 
-- `data/` - данные из папки *train* (не включены в проект) датасета https://www.kaggle.com/sharthz23/sna-hackathon-2019-collaboration?select=train. 
-
-
+В качестве данных используется датасет https://www.kaggle.com/sharthz23/sna-hackathon-2019-collaboration?select=train. 
+Данные не включены в проект, можно скачать их по необходимости и указать путь в конфигурации. 
