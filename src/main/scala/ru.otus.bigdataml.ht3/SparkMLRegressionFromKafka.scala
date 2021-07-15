@@ -17,13 +17,19 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, sql}
 import org.apache.log4j.{Logger, Level}
 
-object SparkMLRegressionFromKafka {
+/*
+* Получает данные из Кафки, преобразует их с помщью пайплайна, 
+* считает линейную регрессию окнами с заданной длительностью.
+* Выводит для каждого батча RMSE и R2 метрики.
+*/
+
+object SparkMLRegressionFromKafka extends DataColumns {
     Logger.getRootLogger.setLevel(Level.ERROR)
     Logger.getRootLogger.setLevel(Level.FATAL)
     Logger.getLogger("org").setLevel(Level.WARN)
 
     def main(args: Array[String]): Unit = {
-        val conf=ProjectConfiguration("consumer")
+        val conf=new ConsumerConfiguration()
 
         val sparkConf = new SparkConf().setAppName(conf.SPARK_APPNAME).setMaster(conf.SPARK_MASTER)
         val sparkStreamingContext = new StreamingContext(sparkConf, Seconds(conf.SPARK_BATCH_DURATION))
@@ -47,46 +53,23 @@ object SparkMLRegressionFromKafka {
         }).foreachRDD(rdd => {
             if (!rdd.isEmpty()) {
 
-                val data = spark.read.json(rdd.toDS())
-                println(s"Data: loaded [${data.count.toDouble}:${data.columns.length}]")
+                val df = spark.read.json(rdd.toDS())
+                println(s"Data: loaded [${df.count.toDouble}:${df.columns.length}]")
 
-                val cols=DataColumns(data)
-
-                val encoders = (cols.categorical zip cols.categoricalClassesNum).map (
-                    c => new OneHotEncoderToKnownClassesNumber(c._2).setInputCol(c._1).setOutputCol(s"${c._1}_enc")
-                )
-
-                val assemblerNumerical = (new VectorAssembler()
-                            .setInputCols(cols.numerical)
-                            .setOutputCol("features_numerical") )
-            
-                val normalizer = new Normalizer()
-                    .setInputCol("features_numerical")
-                    .setOutputCol("features_norm")
-                    .setP(2.0)
-
-                val scaler = new StandardScaler().setInputCol("features_norm").setOutputCol("features_scaled")
-
-                val assemblerFinal = (new VectorAssembler()
-                    .setInputCols(cols.categoricalEncoded:+"features_scaled")
-                    .setOutputCol("features") )
-
-                val pipeline = new Pipeline().setStages(encoders++Array(assemblerNumerical, normalizer, scaler, assemblerFinal))
-                
-                val transformed = pipeline.fit(data).transform(data)
-                //transformed.select("features",cols.categoricalEncoded:_*).show(10)
+                val transformer = new DataTransformerHelper(DataTransformerService("standard"))
+                val dfTransformed = transformer.transform(df)
 
                 val lr = new LinearRegression()
-                    .setLabelCol("target")
-                    .setFeaturesCol("features_scaled")
+                    .setLabelCol(targetColumn)
+                    .setFeaturesCol(featuresColumn)
                     .setMaxIter(100)
                     .setRegParam(1.0)
 
-                val lrModel = lr.fit(transformed)
+                val lrModel = lr.fit(dfTransformed)
 
                 println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
                 val trainingSummary = lrModel.summary
-                println(s"RMSE: ${trainingSummary.rootMeanSquaredError}, r2: ${trainingSummary.r2}")
+                println(s"RMSE: ${trainingSummary.rootMeanSquaredError}, R2: ${trainingSummary.r2}")
             }
         })
 

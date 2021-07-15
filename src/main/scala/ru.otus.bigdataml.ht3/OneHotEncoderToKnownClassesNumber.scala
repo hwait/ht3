@@ -9,8 +9,11 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, Column}
 
+/*
+* Кастомная реализация OneHotEncoder для векторизации категориальных признаков на заранее заданное количество классов. 
+*/
 class OneHotEncoderToKnownClassesNumber(
-    classesNumber: Int,
+    classesNumber: Int, // Количество классов
     override val uid: String
 ) extends Transformer {
   final val inputCol = new Param[String](this, "inputCol", "The input column")

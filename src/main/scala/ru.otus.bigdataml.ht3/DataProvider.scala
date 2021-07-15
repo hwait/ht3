@@ -5,25 +5,25 @@ import scala.reflect.runtime.universe._
 import org.apache.spark.sql.functions._
 
 /*
-
-
+* Предоставляет данные для Продьюсера и тестового тренинга. Использует конфигурацию Продьюсера.
 */
 
-case class DataProvider(conf:ProjectConfiguration) {
+class DataProvider() extends ProducerConfiguration {
 
   val spark=SparkSession.builder()
-    .appName(conf.SPARK_APPNAME)
-    .master(conf.SPARK_MASTER)
+    .appName(SPARK_APPNAME)
+    .master(SPARK_MASTER)
     .getOrCreate()
 
   import spark.implicits._
 
-  // Для уменьшения трафика сделаем индексацию категориальных значений в заранее известное количество классов.
-
-  // Генератор UDF для пользовательской индексации категорий: 
-  // Получает список категорий как шаблон и заменяет значение на индекс соответствующей категории.
-  // Шаблон должен содержать все возможные значения. Все категории, не входящие в шаблон, помещаются 
-  // в последний класс (его номер равен длине массива шаблона)
+    /**
+    * Для уменьшения трафика сделаем индексацию категориальных значений в заранее известное количество классов.
+    * Генератор UDF для пользовательской индексации категорий: 
+    * Получает список категорий как шаблон и заменяет значение на индекс соответствующей категории.
+    * Шаблон должен содержать все возможные значения. Все категории, не входящие в шаблон, помещаются 
+    * в последний класс (его номер равен длине массива шаблона)
+    */
 
   def indexer[T](xs:List[T])(implicit typeTag: TypeTag[T]) = {
       val mapInstanceId:Map[T,Int] = (xs zip xs.indices).toMap
@@ -32,7 +32,7 @@ case class DataProvider(conf:ProjectConfiguration) {
 
   // Для стриминга необязательно загружать все данные, будем подгружать их по дням.
   def loadDay(day:String):DataFrame = {
-      val dfLoaded=spark.read.parquet(conf.DATA_PATH).filter(s"date='${day}'")
+      val dfLoaded=spark.read.parquet(DATA_PATH).filter(s"date='${day}'")
       val DF_COUNT=dfLoaded.count.toDouble
       println(s"Day ${day} loaded ${DF_COUNT} rows.")
       
